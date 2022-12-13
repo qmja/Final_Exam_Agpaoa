@@ -1,0 +1,36 @@
+---
+- hosts: all
+  become: true
+
+  pre_tasks:
+  - name: update repository index (CentOS)
+    tags: always
+    dnf:
+      update_cache: yes
+    changed_when: false
+    when: ansible_distribution == "CentOS"
+
+  - name: install updates (Ubuntu)
+    tags: always
+    apt:
+      update_cache: yes
+    changed_when: false
+    when: ansible_distribution == "Ubuntu"
+
+  tasks:
+  - name: MOTD
+    template:
+      src: motd.j2
+      dest: /etc/motd
+    tags:
+      - motd_config
+
+- hosts: ubuntu
+  become: true
+  roles:
+    - ubuntu
+
+- hosts: centos
+  become: true
+  roles:
+    - centos

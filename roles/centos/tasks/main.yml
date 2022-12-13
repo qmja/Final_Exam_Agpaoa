@@ -1,0 +1,95 @@
+- name: Installing required packages for installing Nagios
+  tags: dependecies, libraries
+  dnf:
+    name:
+      - gcc
+      - glibc
+      - glibc-common
+      - perl
+      - httpd
+      - php
+      - wget
+      - gd
+      - gd-devel
+      - openssl-devel
+      - gcc
+      - glibc
+      - glibc-common
+      - make
+      - gettext
+      - automake
+      - autoconf
+      - wget
+      - openssl-devel
+      - net-snmp
+      - net-snmp-utils
+      - python2-pip
+      - python3 
+      - python3-pip
+    state: latest
+
+- name: Installing passlib python package
+  pip:
+    name: passlib
+
+- name: Creating directory for the downloaded files
+  file:
+    path: ~/nagios
+    state: directory
+
+- name: Installing and extracting Nagios
+  unarchive:
+    src: https://github.com/NagiosEnterprises/nagioscore/archive/nagios-4.4.6.tar.gz
+    dest: ~/nagios
+    remote_src: yes
+    mode: 0777
+    owner: root
+    group: root
+
+- name: Compiling, installing, and creating users and group for Nagios
+  shell: |
+    cd ~/nagios/nagioscore-**
+    ./configure
+    make all
+    make install-groups-users
+    usermod -a -G nagios apache
+    make install
+    make install-daemoninit
+    make install-commandmode
+    make install-config
+    make install-webconf
+  
+- name: Installing the Nagios plugins and then extracting it
+  unarchive:
+    src: https://github.com/nagios-plugins/nagios-plugins/archive/release-2.3.3.tar.gz
+    dest: ~/nagios
+    remote_src: yes
+    mode: 0777
+    owner: root
+    group: root
+
+- name: Compiling and installing the Nagios plugins
+  shell: |
+    cd ~/nagios/nagios-plugins*
+    ./tools/setup
+    ./configure
+    make
+    make install
+  
+- name: Adding a user to a password file
+  community.general.htpasswd:
+    path: /usr/local/nagios/etc/htpasswd.users
+    name: agpaoanagi
+    password: mad12
+
+- name: Starting/Restarting Nagios
+  service:
+    name: nagios
+    state: restarted
+    enabled: true
+
+- name: Starting/Restarting httpd
+  service:
+    name: httpd
+    state: restarted
+    enabled: true

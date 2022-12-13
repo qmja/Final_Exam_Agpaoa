@@ -1,0 +1,104 @@
+- name: Installing required packages for installing Nagios
+  tags: dependecies, libraries
+  apt:
+    name:
+      - autoconf
+      - gcc
+      - libc6
+      - make
+      - wget
+      - unzip
+      - apache2
+      - php
+      - libapache2-mod-php7.4
+      - libgd-dev
+      -  openssl
+      - libssl-dev
+      - autoconf
+      - gcc
+      - libc6
+      - libmcrypt-dev
+      - make
+      - libssl-dev
+      - wget
+      - bc
+      - gawk
+      - dc
+      - build-essential
+      - snmp
+      - libnet-snmp-perl
+      - gettext
+      - python3-pip
+      - python3
+    state: latest
+
+- name: Installing passlib python package
+  pip:
+    name: passlib
+
+
+- name: Creating directory for the downloaded files
+  file:
+    path: ~/nagios
+    state: directory
+
+- name: Installing and extracting Nagios
+  unarchive:
+    src: https://github.com/NagiosEnterprises/nagioscore/archive/nagios-4.4.6.tar.gz
+    dest: ~/nagios
+    remote_src: yes
+    mode: 0755
+    owner: root
+    group: root
+
+- name: Compiling, installing, and Creating users and group for Nagios
+  shell: |
+    cd ~/nagios/nagioscore-*
+    sudo ./configure --with-httpd-conf=/etc/apache2/sites-enabled
+    sudo make all
+    sudo make install-groups-users
+    sudo usermod -a -G nagios www-data
+    sudo make install
+    sudo make install-daemoninit
+    sudo make install-commandmode
+    sudo make install-config
+    sudo make install-webconf
+    sudo a2enmod rewrite
+    sudo a2enmod cgi
+
+  
+- name: Installing the Nagios plugins and then extracting it
+  unarchive:
+    src: https://github.com/nagios-plugins/nagios-plugins/archive/release-2.3.3.tar.gz
+    dest: ~/nagios
+    remote_src: yes
+    mode: 0755
+    owner: root
+    group: root
+
+- name: Compiling and installing the Nagios
+  shell: |
+    cd ~/nagios/nagios-plugins*
+    ./tools/setup
+    ./configure
+    make
+    make install
+
+  
+- name: Adding a user to a password file
+  community.general.htpasswd:
+    path: /usr/local/nagios/etc/htpasswd.users
+    name: agpaoanagi
+    password: mad12
+
+- name: Starting/Restarting Nagios
+  service:
+    name: nagios
+    state: restarted
+    enabled: true
+
+- name: Starting/Restarting httpd
+  service:
+    name: apache2
+    state: restarted
+    enabled: true
